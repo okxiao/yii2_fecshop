@@ -48,6 +48,11 @@ class AppadminbaseBlockEdit extends BaseObject
 
         $this->_one = $this->_service->getByPrimaryKey($id);
     }
+    
+    public function getVal($name, $column){
+        
+        return ($this->_one[$name] || $this->_one[$name] === 0) ? $this->_one[$name] : $column['default'];
+    }  
 
     public function getEditBar($editArr = [])
     {
@@ -74,6 +79,8 @@ class AppadminbaseBlockEdit extends BaseObject
 			<input type="hidden"  value="{$this->_param[$this->_primaryKey]}" size="30" name="{$this->_editFormData}[{$this->_primaryKey}]" class="textInput ">
 EOF;
         }
+        $idsj = md5(time());
+        $idsji = 0;
         foreach ($editArr as $column) {
             $name = $column['name'];
             $require = $column['require'] ? 'required' : '';
@@ -83,7 +90,8 @@ EOF;
                 $display = ['type' => 'inputString'];
             }
             //var_dump($this->_one['id']);
-            $value = ($this->_one[$name] || $this->_one[$name] === 0) ? $this->_one[$name] : $column['default'];
+            $value = $this->getVal($name, $column);
+            
             $display_type = isset($display['type']) ? $display['type'] : 'inputString';
             if ($display_type == 'inputString') {
                 $isLang = isset($display['lang']) ? $display['lang'] : false;
@@ -163,6 +171,13 @@ EOF;
 							<input type="text"  value="{$value}" size="30" name="{$this->_editFormData}[{$name}]" class="email textInput {$require} ">
 						</p>
 EOF;
+            } elseif ($display_type == 'stringText') {
+                $str .= <<<EOF
+						<p class="edit_p">
+							<label>{$label}：</label>
+							{$value}
+						</p>
+EOF;
             } elseif ($display_type == 'inputPassword') {
                 $str .= <<<EOF
 						<p class="edit_p">
@@ -196,6 +211,45 @@ EOF;
 							<label>{$label}：</label>
 								{$select_str}
 						</p>
+EOF;
+            } elseif ($display_type == 'editSelect') {
+                $data = isset($display['data']) ? $display['data'] : '';
+                //var_dump($data);
+                //echo $value;
+                $select_str = '';
+                if (is_array($data)) {
+                    $idsji++;
+                    $selectId = $idsj.$idsji;
+                    $select_str .= <<<EOF
+								<select id="{$selectId}" class=" {$require}" name="{$this->_editFormData}[{$name}]" >
+EOF;
+                    $select_str .= '<option value="">'.$label.'</option>';
+                    $editSelectChosen = false;
+                    foreach ($data as $k => $v) {
+                        if ($value == $k) {
+                            //echo $value."#".$k;
+                            $select_str .= '<option selected value="'.$k.'">'.$v.'</option>';
+                            $editSelectChosen = true;
+                        } else {
+                            $select_str .= '<option value="'.$k.'">'.$v.'</option>';
+                        }
+                    }
+                    if (!$editSelectChosen) {
+                        $select_str .= '<option selected value="'.$value.'">'.$value.'</option>';
+                    }
+                    $select_str .= '</select>';
+                }
+
+                $str .= <<<EOF
+						<p class="edit_p">
+							<label>{$label}：</label>
+								{$select_str}
+						</p>
+                        <script type="text/javascript">
+                            $('#{$selectId}').editableSelect(
+                                { filter: false }
+                            );
+                        </script>
 EOF;
             } elseif ($display_type == 'textarea') {
                 $rows = isset($display['rows']) ? $display['rows'] : 15;
